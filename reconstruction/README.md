@@ -30,10 +30,32 @@ dengan Chromium hanya sebagai peringatan (non-fatal).
   tidak dijalankan: staging `pnpm add codexui-android@latest`, validasi di
   staging, lalu tukar ke live dengan backup/restore.
 
+## Kemampuan baru: ProotExecutor
+
+`ProotExecutor` adalah kemampuan nyata pertama yang benar-benar mengeksekusi,
+bukan hanya memeriksa file:
+
+- Membangun perintah `<proot> -r <rootfs> -w /root /bin/sh -c "<command>"`
+  dengan HOME=/root, PATH=/usr/local/bin:/usr/bin:/bin, LANG=C.UTF-8.
+  Daftar argumen ini adalah desain rekonstruksi, bukan salinan argumen
+  `buildProotCommand()` aslinya (yang tidak sempat di-dump), dan README ini
+  menyatakannya supaya tidak diklaim sebagai bukti bytecode.
+- `execute()` mengembalikan `CommandResult(exitCode, output, timedOut)`,
+  dengan exitCode -1 untuk timeout maupun binary yang tidak ada, mengikuti
+  bentuk hasil aslinya.
+- `SetupVerifier.verifyWithProot()` menjalankan perintah verify yang sama
+  persis dengan aslinya (`node --version`, `codex --version`,
+  `codex-web-local --help || node .../dist-cli/index.js --help`, dll).
+  Bedanya dengan verify asli: tiap perintah di sini dibatasi timeout
+  30 detik (verify asli tidak memakai timeout), supaya UI tidak menggantung.
+- `MainActivity` memakai jalur proot ini hanya kalau file `<app files>/proot`
+  ada; kalau tidak ada, ia kembali ke jalur cek file. Tidak ada binary
+  proot yang dibundel, jadi instalasi baru tetap memakai jalur cek file.
+
 ## Yang BELUM ada (jangan diklaim sudah jadi)
 
 - Bootstrap proot / rootfs (Play Asset Delivery maupun unduhan GitHub),
-  import rootfs manual, dan eksekusi perintah di dalam proot.
+  import rootfs manual, dan binary proot itu sendiri.
 - Binary node, OpenClaw, Codex CLI, dan OpenSSH sungguhan.
 - Bundle codexui-android, gateway OpenClaw, WebView UI, login/auth,
   dan semua fitur chat/agent dari 2.0.514.

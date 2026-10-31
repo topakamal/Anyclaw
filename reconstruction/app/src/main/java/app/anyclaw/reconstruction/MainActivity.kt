@@ -41,9 +41,20 @@ class MainActivity : AppCompatActivity() {
             statusView.text = getString(R.string.running)
             Thread {
                 val rootfsDir = File(filesDir, "rootfs")
-                val results = verifier.verify(rootfsDir)
+                val prootBinary = File(filesDir, "proot")
+                // If a proot binary has been placed in app files, run the
+                // real commands inside it; otherwise fall back to the
+                // file-presence checks. No proot binary is bundled, so a
+                // fresh install still takes the file-check path.
+                val mode = if (prootBinary.isFile) "proot" else "file-check"
+                val results = if (prootBinary.isFile) {
+                    verifier.verifyWithProot(rootfsDir, prootBinary)
+                } else {
+                    verifier.verify(rootfsDir)
+                }
                 val codexuiValid = validator.validate(rootfsDir)
                 val report = buildString {
+                    append("mode: $mode\n\n")
                     for (result in results) {
                         val mark = if (result.passed) "OK  " else "FAIL"
                         append(mark)

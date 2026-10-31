@@ -82,6 +82,60 @@ class SetupVerifier {
         return results
     }
 
+    /**
+     * Run the same steps as real commands inside proot, using the exact
+     * command strings observed in SetupManager.verify(). This is the
+     * first path in the reconstruction that actually executes something,
+     * rather than only checking file presence.
+     *
+     * If the proot binary is missing, every step is reported as failed
+     * with that reason, instead of silently falling back to file checks:
+     * callers that want the file-check path should call [verify] instead.
+     * A timed-out command is a failure, not a pass.
+     */
+    fun verifyWithProot(
+        rootfsDir: File,
+        prootBinary: File,
+        timeoutMs: Long = 30_000,
+    ): List<StepResult> {
+        if (!prootBinary.isFile) {
+            val reason = "proot binary not found: ${prootBinary.path}"
+            return SetupStep.values().map { StepResult(it, false, reason) }
+        }
+        val executor = ProotExecutor(prootBinary, rootfsDir)
+        fun run(step: SetupStep, command: String): StepResult {
+            val result = executor.execute(command, timeoutMs)
+            val passed = !result.timedOut && result.exitCode == 0
+            val detail = when {
+                result.timedOut -> "timed out after ${timeoutMs}ms: $command"
+                passed -> "exit 0: $command"
+                else -> "exit ${result.exitCode}: $command"
+            }
+            return StepResult(step, passed, detail)
+        }
+        val results = ArrayList<StepResult>()
+        results += StepResult(
+            SetupStep.PROOT,
+            rootfsDir.isDirectory,
+            if (rootfsDir.isDirectory) "rootfs dir found: ${rootfsDir.path}"
+            else "rootfs dir not found: ${rootfsDir.path}",
+        )
+        results += run(SetupStep.NODE, "node --version")
+        results += run(
+            SetupStep.OPENCLAW,
+            "openclaw --version 2>/dev/null || openclaw --help 2>&1 | head -1",
+        )
+        results += run(SetupStep.CODEX_CLI, "codex --version >/dev/null 2>&1")
+        results += run(
+            SetupStep.CODEX_WEB_LOCAL,
+            "codex-web-local --help >/dev/null 2>&1 || " +
+                "node /usr/local/lib/node_modules/codexui-android/dist-cli/index.js --help >/dev/null 2>&1",
+        )
+        results += run(SetupStep.OPENSSH, "test -x /usr/sbin/sshd")
+        results += run(SetupStep.CHROMIUM, "test -x /usr/bin/chromium")
+        return results
+    }
+
     /** Overall setup result: every non-optional step must pass. */
     fun allRequiredPassed(results: List<StepResult>): Boolean =
         results.filter { !it.step.optional }.all { it.passed }
