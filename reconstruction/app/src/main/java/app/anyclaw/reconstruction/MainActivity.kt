@@ -3,6 +3,7 @@ package app.anyclaw.reconstruction
 import android.os.Bundle
 import android.view.View
 import android.widget.Button
+import android.widget.EditText
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -80,6 +81,47 @@ class MainActivity : AppCompatActivity() {
                     progress.visibility = View.GONE
                     statusView.text = report
                     button.isEnabled = true
+                }
+            }.start()
+        }
+
+        val urlInput = findViewById<EditText>(R.id.rootfs_url_input)
+        val prepareButton = findViewById<Button>(R.id.prepare_rootfs_button)
+        prepareButton.setOnClickListener {
+            val url = urlInput.text.toString().trim()
+            if (url.isBlank()) {
+                statusView.text = getString(R.string.rootfs_url_empty)
+                return@setOnClickListener
+            }
+            prepareButton.isEnabled = false
+            progress.visibility = View.VISIBLE
+            statusView.text = getString(R.string.preparing_rootfs)
+            Thread {
+                val manager = RootfsManager()
+                val rootfsDir = File(filesDir, "rootfs")
+                val downloadDir = File(filesDir, "downloads")
+                val result = manager.prepare(
+                    RootfsSource.Url(url),
+                    downloadDir,
+                    rootfsDir,
+                ) { message ->
+                    runOnUiThread { statusView.text = message }
+                }
+                val report = when (result) {
+                    is PrepareResult.AlreadyReady ->
+                        "Rootfs sudah siap, tidak diunduh ulang:\n${result.rootfsDir.path}"
+                    is PrepareResult.Prepared ->
+                        "Rootfs siap:\n${result.rootfsDir.path}\n" +
+                            "file diekstrak: ${result.extractedFiles}\n" +
+                            "arsip: ${result.archiveFile.path}\n" +
+                            "Selanjutnya tekan Jalankan Verifikasi."
+                    is PrepareResult.Failed ->
+                        "Gagal menyiapkan rootfs:\n${result.reason}"
+                }
+                runOnUiThread {
+                    progress.visibility = View.GONE
+                    statusView.text = report
+                    prepareButton.isEnabled = true
                 }
             }.start()
         }

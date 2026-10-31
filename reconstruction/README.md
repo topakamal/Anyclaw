@@ -52,10 +52,39 @@ bukan hanya memeriksa file:
   ada; kalau tidak ada, ia kembali ke jalur cek file. Tidak ada binary
   proot yang dibundel, jadi instalasi baru tetap memakai jalur cek file.
 
+## Kemampuan baru: Penyediaan rootfs
+
+`RootfsManager` menyiapkan rootfs dari tiga sumber yang teramati di 2.0.514,
+tanpa mengklaim salah satunya sudah lengkap:
+
+- `RootfsSource.Manual` — file yang sudah ada di perangkat.
+- `RootfsSource.Url` — URL langsung yang dimasukkan pengguna di UI.
+- `RootfsSource.GitHubRelease` — aset rilis GitHub dengan base URL fallback
+  yang teramati (`friuns2/anyclaw-rootfs-assets/releases/download/rootfs-latest/`),
+  tetapi nama asetnya TIDAK di-hardcode: nama itu harus diambil dari halaman
+  rilisnya sendiri, karena menebaknya berisiko mengunduh file yang salah.
+- Play Asset Delivery TIDAK diimplementasikan: itu butuh Asset Pack yang
+  dikonfigurasi untuk aplikasi ini.
+
+Alurnya: kalau marker `.rootfs-ready` sudah ada di direktori rootfs,
+prepare dilewati (`AlreadyReady`). Kalau belum, arsip diunduh (HTTP 200
+saja, timeout connect 30 detik / read 60 detik, progres per chunk),
+diekstrak, lalu marker ditulis. Ekstraktor hanya menerima ZIP dan menolak
+entri zip-slip (jalur yang keluar dari direktori tujuan) dengan IOException.
+Arsip non-ZIP, misalnya tarball, ditolak secara eksplisit, bukan ditebak
+formatnya.
+
+PERINGATAN: jangan masukkan URL zip bootstrap sembarangan. Pakai hanya
+arsip rootfs yang disediakan/ditautkan oleh rilis yang sama dengan aplikasi
+yang dibangun, dan cocokkan hash/checksum bila rilis itu menyediakannya.
+UI di aplikasi ini hanya menerima URL ZIP; pemilih file manual
+(`Select rootfs file` di 2.0.514) belum tersedia di UI ini dan menjadi
+langkah berikutnya yang masuk akal.
+
 ## Yang BELUM ada (jangan diklaim sudah jadi)
 
-- Bootstrap proot / rootfs (Play Asset Delivery maupun unduhan GitHub),
-  import rootfs manual, dan binary proot itu sendiri.
+- Play Asset Delivery, pemilih file rootfs manual di UI, dan binary proot
+  itu sendiri (serta node/OpenClaw/codexui di dalam rootfs).
 - Binary node, OpenClaw, Codex CLI, dan OpenSSH sungguhan.
 - Bundle codexui-android, gateway OpenClaw, WebView UI, login/auth,
   dan semua fitur chat/agent dari 2.0.514.
