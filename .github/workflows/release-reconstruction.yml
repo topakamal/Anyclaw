@@ -1,0 +1,66 @@
+name: Release Reconstruction
+
+# Triggered only by pushing a tag like v0.1.0-reconstruction. The tag
+# should point at the reconstruction-514 commit being released. This
+# workflow does NOT run on branch pushes, and it does NOT touch main.
+on:
+  push:
+    tags:
+      - "v*-reconstruction"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+
+      # Same reasoning as build-reconstruction.yml: ubuntu-latest already
+      # ships an Android SDK, no separate SDK setup step.
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.11.1"
+
+      - name: Build reconstruction debug APK
+        working-directory: reconstruction
+        run: gradle assembleDebug --stacktrace
+
+      - name: Run reconstruction unit tests
+        working-directory: reconstruction
+        run: gradle testDebugUnitTest --stacktrace
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cat > /tmp/release-notes.md <<'EOF'
+          Rekonstruksi setup AnyClaw 2.0.514 dari observasi statis bytecode — BUKAN APK 2.0.514 itu sendiri dan BUKAN pengganti yang sudah bisa dipakai penuh.
+
+          Yang ada di build debug ini (package app.anyclaw.reconstruction):
+          - Verifikasi setup per langkah (proot, Node, OpenClaw, Codex CLI, codex-web-local, OpenSSH, Chromium warning-only)
+          - Eksekusi perintah lewat proot (ProotExecutor, timeout 30 detik per perintah)
+          - Penyediaan rootfs dari URL ZIP dan dari file yang dipilih manual (ZIP saja, tolak zip-slip, marker .rootfs-ready)
+
+          Yang TIDAK ada / TIDAK dibundel:
+          - Binary proot, node, OpenClaw, codexui, gateway, WebView UI, login/auth, dan fitur chat/agent dari 2.0.514
+          - Play Asset Delivery
+          - Perbaikan untuk kegagalan setup 92% di perangkat yang sudah punya instalasi rusak
+
+          APK ini adalah build DEBUG (debug-signed), bukan build rilis produksi. Pakai hanya arsip rootfs yang disediakan/ditautkan oleh rilis yang sama, dan cocokkan hash/checksum bila tersedia. Jangan pakai zip bootstrap sembarangan.
+          EOF
+          gh release create "${{ github.ref_name }}" \
+            reconstruction/app/build/outputs/apk/debug/app-debug.apk \
+            --prerelease \
+            --title "Anyclaw Reconstruction ${{ github.ref_name }} (prerelease)" \
+            --notes-file /tmp/release-notes.md
