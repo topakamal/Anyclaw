@@ -23,14 +23,12 @@ jobs:
           java-version: "17"
           distribution: "temurin"
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install Android platform and build tools
-        run: |
-          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses || true
-          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0" || echo "sdkmanager step did not complete; continuing to Gradle"
-
+      # No separate Android SDK setup step: ubuntu-latest already ships an
+      # Android SDK (ANDROID_HOME), and the upstream build-apk.yml in this
+      # repo builds compileSdk 35 the same way, with only JDK + Gradle setup.
+      # The previous android-actions/setup-android@v3 step failed the whole
+      # run (run 41167566516) before Gradle ever started, so it is removed
+      # rather than retried unchanged.
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
