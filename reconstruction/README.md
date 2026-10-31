@@ -77,14 +77,26 @@ formatnya.
 PERINGATAN: jangan masukkan URL zip bootstrap sembarangan. Pakai hanya
 arsip rootfs yang disediakan/ditautkan oleh rilis yang sama dengan aplikasi
 yang dibangun, dan cocokkan hash/checksum bila rilis itu menyediakannya.
-UI di aplikasi ini hanya menerima URL ZIP; pemilih file manual
-(`Select rootfs file` di 2.0.514) belum tersedia di UI ini dan menjadi
-langkah berikutnya yang masuk akal.
+
+UI menyediakan dua jalur yang sama dengan layar setup 2.0.514:
+
+- URL ZIP: kolom URL + tombol "Siapkan Rootfs (ZIP dari URL)".
+- File manual: tombol "Pilih File Rootfs (ZIP)" membuka pemilih dokumen
+  sistem (OpenDocument, filter `application/zip`) — padanan "Select rootfs
+  file" di 2.0.514. File yang dipilih disalin dulu ke direktori downloads
+  privat aplikasi (nama file dibersihkan dari pemisah path, tapi
+  ekstensinya dipertahankan supaya cek ZIP-only tetap berlaku), lalu
+  `RootfsManager.prepare(RootfsSource.Manual(...))` mengekstraknya sama
+  seperti jalur URL. Kalau rootfs sudah siap (marker `.rootfs-ready`
+  ada), pemilihan dibatalkan tanpa menyalin apa pun. Pemilih ini tidak
+  bisa diuji unit test JVM biasa (butuh Activity), jadi cakupannya hanya
+  lewat build CI; logika prepare manualnya sendiri sudah tercakup tes
+  `RootfsTest` lewat sumber Manual.
 
 ## Yang BELUM ada (jangan diklaim sudah jadi)
 
-- Play Asset Delivery, pemilih file rootfs manual di UI, dan binary proot
-  itu sendiri (serta node/OpenClaw/codexui di dalam rootfs).
+- Play Asset Delivery dan binary proot itu sendiri (serta
+  node/OpenClaw/codexui di dalam rootfs).
 - Binary node, OpenClaw, Codex CLI, dan OpenSSH sungguhan.
 - Bundle codexui-android, gateway OpenClaw, WebView UI, login/auth,
   dan semua fitur chat/agent dari 2.0.514.

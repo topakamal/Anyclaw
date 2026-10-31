@@ -4,6 +4,11 @@
     <string name="app_subtitle">Rekonstruksi setup dari observasi APK 2.0.514. Bukan APK 2.0.514 itu sendiri, dan belum menjalankan proot, node, OpenClaw, maupun codexui sungguhan.</string>
     <string name="verify_button">Jalankan Verifikasi</string>
     <string name="prepare_rootfs_button">Siapkan Rootfs (ZIP dari URL)</string>
+    <string name="pick_rootfs_button">Pilih File Rootfs (ZIP)</string>
+    <string name="rootfs_pick_cancelled">Pemilihan file dibatalkan.</string>
+    <string name="copying_rootfs">Menyalin file rootfs…</string>
+    <string name="rootfs_copy_failed">Gagal menyalin file rootfs yang dipilih.</string>
+    <string name="rootfs_already_ready">Rootfs sudah siap, tidak perlu file baru:\n%1$s</string>
     <string name="rootfs_url_hint">URL zip rootfs dari rilis yang sama (ZIP saja)</string>
     <string name="rootfs_url_empty">Masukkan dulu URL zip rootfs dari rilis yang sama. Jangan pakai zip bootstrap sembarangan: format rootfs tiap rilis bisa berbeda.</string>
     <string name="preparing_rootfs">Mengunduh dan mengekstrak rootfs…</string>
