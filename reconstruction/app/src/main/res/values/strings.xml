@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_title">Anyclaw Reconstruction</string>
+    <string name="app_subtitle">Rekonstruksi setup dari observasi APK 2.0.514. Bukan APK 2.0.514 itu sendiri, dan belum menjalankan proot, node, OpenClaw, maupun codexui sungguhan.</string>
+    <string name="verify_button">Jalankan Verifikasi</string>
+    <string name="running">Memeriksa…</string>
+    <string name="intro">Tekan Jalankan Verifikasi untuk memeriksa rootfs di:\n%1$s\n\nDi instalasi baru, rootfs itu belum ada, jadi verifikasi akan gagal di langkah awal. Itu hasil yang diharapkan dari kerangka ini, bukan bug tersembunyi.</string>
+</resources>
