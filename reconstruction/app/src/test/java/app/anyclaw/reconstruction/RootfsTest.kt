@@ -1,8 +1,8 @@
 package app.anyclaw.reconstruction
 
-import com.sun.net.httpserver.HttpServer
 import java.io.File
-import java.net.InetSocketAddress
+import java.net.InetAddress
+import java.net.ServerSocket
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 import org.junit.Assert.assertEquals
@@ -57,23 +57,51 @@ class RootfsTest {
 
     @Test
     fun downloaderDownloadsFromLocalHttpServer() {
+        // Deliberately a hand-rolled ServerSocket, not com.sun.net.httpserver:
+        // the com.sun HttpServer class is not resolvable when Android Gradle
+        // Plugin compiles unit tests, which is what broke CI run 41169932228
+        // (compileDebugUnitTestKotlin failed before any test ran).
         val dir = tempDir("rootfs-download-")
-        val server = HttpServer.create(InetSocketAddress(0), 0)
-        try {
-            val payload = "rootfs-bytes".toByteArray()
-            server.createContext("/rootfs.zip") { exchange ->
-                exchange.sendResponseHeaders(200, payload.size.toLong())
-                exchange.responseBody.use { it.write(payload) }
+        val payload = "rootfs-bytes".toByteArray()
+        val serverSocket = ServerSocket(0, 0, InetAddress.getByName("127.0.0.1"))
+        val port = serverSocket.localPort
+        val serverThread = Thread {
+            try {
+                serverSocket.accept().use { socket ->
+                    val reader = socket.getInputStream().bufferedReader()
+                    var line: String?
+                    do {
+                        line = reader.readLine()
+                    } while (line != null && line.isNotEmpty())
+                    val out = socket.getOutputStream()
+                    out.write(
+                        (
+                            "HTTP/1.1 200 OK\r\n" +
+                                "Content-Length: ${payload.size}\r\n" +
+                                "Connection: close\r\n\r\n"
+                            ).toByteArray(),
+                    )
+                    out.write(payload)
+                    out.flush()
+                }
+            } catch (ignored: Exception) {
+                // Test teardown closes the socket; nothing to assert here.
             }
-            server.start()
-            val url = "http://localhost:${server.address.port}/rootfs.zip"
+        }
+        serverThread.start()
+        try {
+            val url = "http://127.0.0.1:$port/rootfs.zip"
             val dest = File(dir, "rootfs.zip")
             var progressCalls = 0
             RootfsDownloader().download(url, dest) { _, _ -> progressCalls++ }
             assertEquals("rootfs-bytes", dest.readText())
             assertTrue(progressCalls > 0)
         } finally {
-            server.stop(0)
+            serverThread.join(5000)
+            try {
+                serverSocket.close()
+            } catch (ignored: Exception) {
+            }
             dir.deleteRecursively()
         }
     }
